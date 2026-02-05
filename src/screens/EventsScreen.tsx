@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, StatusBar,
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Search, ChevronDown } from 'lucide-react-native';
 import { Colors, Spacing } from '../theme/Theme';
-import { EVENTS } from '../utils/MockData';
+import { eventService } from '../services/eventService';
 import { LoadingView, EmptyState, ErrorView } from '../components/StateViews';
 
 const { width } = Dimensions.get('window');
@@ -14,21 +14,31 @@ const EventsScreen = ({ navigation }: any) => {
     const [isLoading, setIsLoading] = useState(true);
     const [isError, setIsError] = useState(false);
 
+    const [events, setEvents] = useState<any[]>([]);
+
     React.useEffect(() => {
-        // Simulate data fetching
-        const timer = setTimeout(() => {
-            setIsLoading(false);
-        }, 1500);
-        return () => clearTimeout(timer);
+        fetchData();
     }, []);
 
-    const handleRetry = () => {
-        setIsError(false);
+    const fetchData = async () => {
         setIsLoading(true);
-        setTimeout(() => setIsLoading(false), 1500);
+        setIsError(false);
+        try {
+            const data = await eventService.getEvents();
+            setEvents(data);
+        } catch (error) {
+            console.error('Failed to fetch events:', error);
+            setIsError(true);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
-    const filteredEvents = EVENTS.filter(event =>
+    const handleRetry = () => {
+        fetchData();
+    };
+
+    const filteredEvents = events.filter(event =>
         event.title.toLowerCase().includes(searchQuery.toLowerCase())
     );
 

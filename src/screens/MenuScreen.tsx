@@ -1,23 +1,62 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Plus, Search, ShoppingBag, Wine, ShoppingCart } from 'lucide-react-native';
+import { ArrowLeft, Plus, Search, ShoppingBag, Milk, ShoppingCart } from 'lucide-react-native';
 import { Animated, Dimensions, Easing } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Spacing } from '../theme/Theme';
 import { LinearGradient } from 'expo-linear-gradient';
-import { MENU_CATEGORIES, MENU_ITEMS } from '../utils/MockData';
+import { menuService } from '../services/menuService';
 import { useCart } from '../context/CartContext';
 import Toast, { ToastRef } from '../components/Toast';
 
 const MenuScreen = ({ navigation, route }: any) => {
-    const initialCategoryId = route.params?.categoryId || MENU_CATEGORIES[0].id;
+    const initialCategoryId = route.params?.categoryId;
     const [selectedCategory, setSelectedCategory] = useState(initialCategoryId);
+    const [categories, setCategories] = useState<any[]>([]);
+    const [items, setItems] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
     const { addToCart, cartCount } = useCart();
     const toastRef = React.useRef<ToastRef>(null);
+    const insets = useSafeAreaInsets();
     const { width, height } = Dimensions.get('window');
-
-    // Animation values
     const [animationItems, setAnimationItems] = useState<{ id: number, x: Animated.Value, y: Animated.Value }[]>([]);
+
+    const cartPulse = React.useRef(new Animated.Value(1)).current;
+
+    React.useEffect(() => {
+        const loadInitialData = async () => {
+            try {
+                const cats = await menuService.getCategories();
+                setCategories(cats);
+                if (cats.length > 0 && !selectedCategory) {
+                    setSelectedCategory(cats[0].id);
+                }
+            } catch (error) {
+                console.error('Error loading categories:', error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        loadInitialData();
+    }, []);
+
+    React.useEffect(() => {
+        if (!selectedCategory) return;
+
+        const loadItems = async () => {
+            setIsLoading(true);
+            try {
+                const fetchedItems = await menuService.getItemsByCategory(selectedCategory);
+                setItems(fetchedItems);
+            } catch (error) {
+                console.error('Error loading items:', error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        loadItems();
+    }, [selectedCategory]);
 
     const handleAddToCart = (item: any, event?: any) => {
         addToCart(item);
@@ -63,15 +102,12 @@ const MenuScreen = ({ navigation, route }: any) => {
         }
     };
 
-    const cartPulse = React.useRef(new Animated.Value(1)).current;
     const triggerCartPulse = () => {
         Animated.sequence([
             Animated.timing(cartPulse, { toValue: 1.2, duration: 100, useNativeDriver: true }),
             Animated.timing(cartPulse, { toValue: 1, duration: 150, useNativeDriver: true }),
         ]).start();
     };
-
-    const filteredItems = MENU_ITEMS.filter(item => item.categoryId === selectedCategory);
 
     return (
         <SafeAreaView style={styles.container}>
@@ -96,7 +132,7 @@ const MenuScreen = ({ navigation, route }: any) => {
             {/* Categories */}
             <View style={styles.categoriesContainer}>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoriesContent}>
-                    {MENU_CATEGORIES.map((category) => (
+                    {categories.map((category) => (
                         <TouchableOpacity
                             key={category.id}
                             style={[
@@ -120,7 +156,11 @@ const MenuScreen = ({ navigation, route }: any) => {
 
             {/* Menu Grid */}
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.menuContent}>
-                {filteredItems.map((item) => (
+                {isLoading ? (
+                    <View style={styles.loaderContainer}>
+                        <Text style={styles.loadingText}>Memuat menu...</Text>
+                    </View>
+                ) : items.map((item) => (
                     <TouchableOpacity
                         key={item.id}
                         style={styles.menuItem}
@@ -149,7 +189,10 @@ const MenuScreen = ({ navigation, route }: any) => {
             {cartCount > 0 && (
                 <Animated.View style={[
                     styles.floatingCartContainer,
-                    { transform: [{ scale: cartPulse }] }
+                    {
+                        bottom: 30 + insets.bottom,
+                        transform: [{ scale: cartPulse }]
+                    }
                 ]}>
                     <TouchableOpacity
                         style={styles.floatingCart}
@@ -326,7 +369,6 @@ const styles = StyleSheet.create({
     },
     floatingCartContainer: {
         position: 'absolute',
-        bottom: 30,
         right: 20,
         zIndex: 100,
     },
@@ -381,6 +423,14 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.primary,
         borderWidth: 2,
         borderColor: '#FFF',
+    },
+    loaderContainer: {
+        paddingVertical: 50,
+        alignItems: 'center',
+    },
+    loadingText: {
+        color: Colors.textMuted,
+        fontSize: 14,
     },
 });
 

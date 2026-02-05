@@ -7,6 +7,8 @@ import { Colors, Spacing } from '../theme/Theme';
 import { useAuth } from '../context/AuthContext';
 import LogoImage from '../../assets/icon.png';
 import GoldButton from '../components/GoldButton';
+import { authService } from '../services/authService';
+import { Alert as RNAlert } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
 
@@ -18,7 +20,7 @@ const LoginScreen = ({ navigation }: any) => {
     const [isLoading, setIsLoading] = useState(false);
     const [errors, setErrors] = useState<any>({});
 
-    const handleLogin = () => {
+    const handleLogin = async () => {
         let newErrors: any = {};
         if (!email) newErrors.email = 'Email wajib diisi';
         if (!password) newErrors.password = 'Kata sandi wajib diisi';
@@ -27,12 +29,22 @@ const LoginScreen = ({ navigation }: any) => {
 
         if (Object.keys(newErrors).length === 0) {
             setIsLoading(true);
-            // Simulate login
-            setTimeout(() => {
+            try {
+                const response = await authService.login(email, password);
+
+                if (response.success && response.data) {
+                    await login(response.data);
+                    navigation.navigate('Main');
+                } else {
+                    RNAlert.alert('Login Gagal', 'Data respons tidak valid');
+                }
+            } catch (error: any) {
+                console.error('Login error:', error);
+                const message = error.response?.data?.message || 'Terjadi kesalahan saat login';
+                RNAlert.alert('Login Gagal', message);
+            } finally {
                 setIsLoading(false);
-                login({ email, name: 'Dimas Anggara' });
-                navigation.navigate('Main');
-            }, 1500);
+            }
         }
     };
 

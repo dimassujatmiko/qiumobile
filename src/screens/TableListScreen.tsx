@@ -3,17 +3,34 @@ import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, StatusBar } 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Users, Music } from 'lucide-react-native';
 import { Colors, Spacing } from '../theme/Theme';
-import { LOUNGE_TABLES } from '../utils/MockData';
+import { bookingService } from '../services/bookingService';
+import { ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import SilverButton from '../components/SilverButton';
 
 const TableListScreen = ({ navigation }: any) => {
+    const [tables, setTables] = React.useState<any[]>([]);
+    const [isLoading, setIsLoading] = React.useState(true);
+
+    React.useEffect(() => {
+        const fetchTables = async () => {
+            try {
+                const data = await bookingService.getRooms('TABLE');
+                setTables(data);
+            } catch (error) {
+                console.error('Failed to fetch tables:', error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchTables();
+    }, []);
     const renderTableItem = ({ item }: { item: any }) => (
         <TouchableOpacity
             style={styles.card}
             onPress={() => navigation.navigate('BookingForm', { roomName: item.name })}
         >
-            <Image source={{ uri: item.image }} style={styles.image} />
+            <Image source={{ uri: item.image || 'https://images.unsplash.com/photo-1574096079513-d8259312b785?q=80&w=1000' }} style={styles.image} />
             <View style={styles.info}>
                 <View style={styles.rowBetween}>
                     <Text style={styles.name}>{item.name}</Text>
@@ -22,10 +39,10 @@ const TableListScreen = ({ navigation }: any) => {
                 <View style={styles.tagRow}>
                     <View style={styles.tag}>
                         <Users size={12} color="#AAA" />
-                        <Text style={styles.tagText}>{item.pax}</Text>
+                        <Text style={styles.tagText}>{item.pax || 'Tersedia'}</Text>
                     </View>
                     <View style={styles.tag}>
-                        <Text style={[styles.tagText, { color: Colors.text }]}>{item.price}</Text>
+                        <Text style={[styles.tagText, { color: Colors.text }]}>{item.price || item.status}</Text>
                     </View>
                 </View>
 
@@ -61,16 +78,20 @@ const TableListScreen = ({ navigation }: any) => {
                 <View style={{ width: 40 }} />
             </View>
 
-            <FlatList
-                data={LOUNGE_TABLES}
-                renderItem={renderTableItem}
-                keyExtractor={(item) => item.id}
-                contentContainerStyle={styles.listContent}
-                showsVerticalScrollIndicator={false}
-                ListHeaderComponent={() => (
-                    <Text style={styles.subHeader}>Reservasi meja favorit Anda di area lounge kami yang semarak.</Text>
-                )}
-            />
+            {isLoading ? (
+                <ActivityIndicator color={Colors.primary} style={{ marginTop: 40 }} />
+            ) : (
+                <FlatList
+                    data={tables}
+                    renderItem={renderTableItem}
+                    keyExtractor={(item) => item.id}
+                    contentContainerStyle={styles.listContent}
+                    showsVerticalScrollIndicator={false}
+                    ListHeaderComponent={() => (
+                        <Text style={styles.subHeader}>Reservasi meja favorit Anda di area lounge kami yang semarak.</Text>
+                    )}
+                />
+            )}
         </SafeAreaView>
     );
 };

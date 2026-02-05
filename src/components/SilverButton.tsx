@@ -41,16 +41,10 @@ const SilverButton: React.FC<SilverButtonProps> = ({
                 end={{ x: 1, y: 1 }}
                 style={styles.gradient}
             >
-                <ImageBackground
-                    source={require('../../assets/gold_texture.png')}
-                    style={styles.texture}
-                    imageStyle={{ opacity: 0.2, resizeMode: 'cover', tintColor: '#fff' }}
-                >
-                    <View style={styles.content}>
-                        {icon && <View style={styles.iconContainer}>{icon}</View>}
-                        <Text style={[styles.text, textStyle]}>{title}</Text>
-                    </View>
-                </ImageBackground>
+                <View style={styles.content}>
+                    {icon && <View style={styles.iconContainer}>{icon}</View>}
+                    <Text style={[styles.text, textStyle]}>{title}</Text>
+                </View>
             </LinearGradient>
         </TouchableOpacity>
     );
@@ -70,12 +64,8 @@ const styles = StyleSheet.create({
     gradient: {
         flex: 1,
     },
-    texture: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
     content: {
+        flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',

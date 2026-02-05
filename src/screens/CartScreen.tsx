@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Alert, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Trash2, Minus, Plus, Tag } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Spacing } from '../theme/Theme';
 import { useCart } from '../context/CartContext';
 import Toast, { ToastRef } from '../components/Toast';
@@ -11,6 +12,7 @@ const CartScreen = ({ navigation }: any) => {
     const { items, updateQuantity, removeFromCart, totalPrice } = useCart();
     const [promoCode, setPromoCode] = React.useState('');
     const toastRef = React.useRef<ToastRef>(null);
+    const insets = useSafeAreaInsets();
 
     const applyPromo = () => {
         if (!promoCode) return;
@@ -112,7 +114,7 @@ const CartScreen = ({ navigation }: any) => {
             </ScrollView>
 
             {items.length > 0 && (
-                <View style={styles.footer}>
+                <View style={[styles.footer, { paddingBottom: insets.bottom > 0 ? insets.bottom : Spacing.lg }]}>
                     <View style={styles.totalRow}>
                         <Text style={styles.totalLabel}>Total Bayar</Text>
                         <Text style={styles.totalValue}>{formatCurrency(totalPrice)}</Text>

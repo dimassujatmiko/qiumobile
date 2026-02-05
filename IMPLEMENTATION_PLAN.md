@@ -20,9 +20,10 @@
 - [ ] Profile & Loyalty refined UI
 - [ ] Cart & Checkout flow polish
 
-## Phase 4: Backend Preparation
-- [ ] Setup API services (Mocked for now)
-- [ ] Auth flow implementation
+## Phase 4: API Integration & Backend Connection
+- [x] Setup API services (Standardized to `/api/mobile/`)
+- [x] Auth flow implementation (Login/Register with persistence)
+- [x] Integrated `expo-secure-store` for JWT handling
 - [ ] Real-time Firestore or Supabase integration (Future)
 
 ---

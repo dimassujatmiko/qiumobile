@@ -4,10 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Bell, Calendar, Tag, Star, Info, Trash2 } from 'lucide-react-native';
 import { Swipeable, GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Colors, Spacing } from '../theme/Theme';
-import { NOTIFICATIONS } from '../utils/MockData';
-
 const NotificationScreen = ({ navigation }: any) => {
-    const [notifications, setNotifications] = useState(NOTIFICATIONS);
+    const [notifications, setNotifications] = useState<any[]>([]);
 
     const handleDelete = (id: string) => {
         setNotifications(notifications.filter(item => item.id !== id));

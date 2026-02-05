@@ -4,6 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Mail, Lock, User, Phone, ArrowLeft, CheckCircle2 } from 'lucide-react-native';
 import { Colors, Spacing } from '../theme/Theme';
 
+import { authService } from '../services/authService';
+
 const { width } = Dimensions.get('window');
 
 const RegisterScreen = ({ navigation }: any) => {
@@ -17,7 +19,7 @@ const RegisterScreen = ({ navigation }: any) => {
     const [isLoading, setIsLoading] = useState(false);
     const [errors, setErrors] = useState<any>({});
 
-    const handleRegister = () => {
+    const handleRegister = async () => {
         let newErrors: any = {};
         if (!formData.name) newErrors.name = 'Nama lengkap wajib diisi';
         if (!formData.email) newErrors.email = 'Email wajib diisi';
@@ -29,12 +31,28 @@ const RegisterScreen = ({ navigation }: any) => {
 
         if (Object.keys(newErrors).length === 0) {
             setIsLoading(true);
-            setTimeout(() => {
+            try {
+                const response = await authService.register({
+                    name: formData.name,
+                    email: formData.email,
+                    phone: formData.phone,
+                    password: formData.password
+                });
+
+                if (response.success) {
+                    Alert.alert("Berhasil", response.message || "Akun berhasil dibuat", [
+                        { text: "OK", onPress: () => navigation.navigate('Login') }
+                    ]);
+                } else {
+                    Alert.alert("Registrasi Gagal", response.message || "Terjadi kesalahan");
+                }
+            } catch (error: any) {
+                console.error('Registration error:', error);
+                const message = error.response?.data?.message || 'Terjadi kesalahan saat pendaftaran';
+                Alert.alert("Registrasi Gagal", message);
+            } finally {
                 setIsLoading(false);
-                Alert.alert("Berhasil", "Akun berhasil dibuat", [
-                    { text: "OK", onPress: () => navigation.navigate('Login') }
-                ]);
-            }, 2000);
+            }
         }
     };
 

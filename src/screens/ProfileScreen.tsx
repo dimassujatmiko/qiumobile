@@ -22,7 +22,7 @@ import GoldButton from '../components/GoldButton';
 import SilverButton from '../components/SilverButton';
 
 const ProfileScreen = ({ navigation }: any) => {
-    const { isLoggedIn, logout } = useAuth();
+    const { isLoggedIn, user, logout } = useAuth();
 
     if (!isLoggedIn) {
         return (
@@ -59,9 +59,9 @@ const ProfileScreen = ({ navigation }: any) => {
 
                 {/* Profile Header Card */}
                 <View style={styles.profileCard}>
-                    {/* Gold Member Badge */}
+                    {/* Member Badge */}
                     <View style={styles.memberBadge}>
-                        <Text style={styles.memberBadgeText}>ANGGOTA GOLD</Text>
+                        <Text style={styles.memberBadgeText}>{user?.role === 'CUSTOMER' ? 'ANGGOTA' : user?.role || 'MEMBER'} {user?.level || 'GOLD'}</Text>
                     </View>
 
                     {/* Avatar */}
@@ -72,7 +72,7 @@ const ProfileScreen = ({ navigation }: any) => {
                         >
                             <View style={styles.avatarInner}>
                                 <Image
-                                    source={{ uri: 'https://i.pravatar.cc/150?img=12' }}
+                                    source={{ uri: user?.avatarUrl || `https://ui-avatars.com/api/?name=${user?.name || 'User'}&background=random` }}
                                     style={styles.avatarImage}
                                 />
                             </View>
@@ -83,8 +83,8 @@ const ProfileScreen = ({ navigation }: any) => {
                     </View>
 
                     {/* User Info */}
-                    <Text style={styles.userName}>Dimas Anggara</Text>
-                    <Text style={styles.userEmail}>dimas@customer.com</Text>
+                    <Text style={styles.userName}>{user?.name || 'User'}</Text>
+                    <Text style={styles.userEmail}>{user?.email}</Text>
 
                     <TouchableOpacity
                         style={styles.editProfileSmallBtn}
@@ -96,7 +96,7 @@ const ProfileScreen = ({ navigation }: any) => {
                     {/* Points Badge */}
                     <View style={styles.pointsBadge}>
                         <Star size={16} color={Colors.primary} fill={Colors.primary} />
-                        <Text style={styles.pointsText}>2.453 PTS</Text>
+                        <Text style={styles.pointsText}>{user?.points || 0} PTS</Text>
                     </View>
                 </View>
 
@@ -125,7 +125,7 @@ const ProfileScreen = ({ navigation }: any) => {
                     </View>
                     <View style={styles.detailContent}>
                         <Text style={styles.detailLabel}>NAMA LENGKAP</Text>
-                        <Text style={styles.detailValue}>Dimas Anggara</Text>
+                        <Text style={styles.detailValue}>{user?.name}</Text>
                     </View>
                 </View>
 
@@ -136,7 +136,7 @@ const ProfileScreen = ({ navigation }: any) => {
                     </View>
                     <View style={styles.detailContent}>
                         <Text style={styles.detailLabel}>ALAMAT EMAIL</Text>
-                        <Text style={styles.detailValue}>dimas@customer.com</Text>
+                        <Text style={styles.detailValue}>{user?.email}</Text>
                     </View>
                 </View>
 
@@ -147,7 +147,7 @@ const ProfileScreen = ({ navigation }: any) => {
                     </View>
                     <View style={styles.detailContent}>
                         <Text style={styles.detailLabel}>NOMOR TELEPON</Text>
-                        <Text style={styles.detailValue}>08123456789</Text>
+                        <Text style={styles.detailValue}>{user?.phone || user?.memberId || '-'}</Text>
                     </View>
                 </View>
 

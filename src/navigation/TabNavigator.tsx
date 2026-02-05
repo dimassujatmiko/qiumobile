@@ -3,6 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Home, Calendar, QrCode, Ticket, User } from 'lucide-react-native';
 import { Colors } from '../theme/Theme';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Screens (we'll create these next)
 import HomeScreen from '../screens/HomeScreen';
@@ -26,11 +27,19 @@ const CustomTabBarButton = ({ children, onPress }: any) => (
 );
 
 const TabNavigator = () => {
+    const insets = useSafeAreaInsets();
+
     return (
         <Tab.Navigator
             screenOptions={{
                 headerShown: false,
-                tabBarStyle: styles.tabBar,
+                tabBarStyle: [
+                    styles.tabBar,
+                    {
+                        height: 65 + insets.bottom,
+                        paddingBottom: insets.bottom > 0 ? insets.bottom - 5 : 10
+                    }
+                ],
                 tabBarActiveTintColor: Colors.primary,
                 tabBarInactiveTintColor: Colors.textMuted,
                 tabBarLabelStyle: styles.tabBarLabel,
@@ -84,13 +93,14 @@ const TabNavigator = () => {
 
 const styles = StyleSheet.create({
     tabBar: {
-        backgroundColor: '#0A0A0A',
+        backgroundColor: 'rgba(10, 10, 10, 0.95)',
         borderTopWidth: 0,
-        height: 70,
-        paddingBottom: 10,
         position: 'absolute',
         borderTopColor: 'transparent',
         elevation: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
     },
     tabBarLabel: {
         fontSize: 10,

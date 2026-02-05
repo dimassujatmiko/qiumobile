@@ -3,28 +3,45 @@ import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, StatusBar } 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Users, Info } from 'lucide-react-native';
 import { Colors, Spacing } from '../theme/Theme';
-import { KTV_ROOMS } from '../utils/MockData';
+import { bookingService } from '../services/bookingService';
+import { ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import SilverButton from '../components/SilverButton';
 import { ImageBackground } from 'react-native';
 
 const RoomListScreen = ({ navigation }: any) => {
+    const [rooms, setRooms] = React.useState<any[]>([]);
+    const [isLoading, setIsLoading] = React.useState(true);
+
+    React.useEffect(() => {
+        const fetchRooms = async () => {
+            try {
+                const data = await bookingService.getRooms('KTV');
+                setRooms(data);
+            } catch (error) {
+                console.error('Failed to fetch rooms:', error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchRooms();
+    }, []);
     const renderRoomItem = ({ item }: { item: any }) => (
         <TouchableOpacity
             style={styles.roomCard}
             onPress={() => navigation.navigate('BookingForm', { roomName: item.name })}
         >
-            <Image source={{ uri: item.image }} style={styles.roomImage} />
+            <Image source={{ uri: item.image || 'https://images.unsplash.com/photo-1516280440614-37939bbacd81?q=80&w=1000' }} style={styles.roomImage} />
             <View style={styles.roomInfo}>
                 <View style={styles.rowBetween}>
                     <Text style={styles.roomName}>{item.name}</Text>
-                    <Text style={styles.roomPrice}>{item.price}</Text>
+                    <Text style={styles.roomPrice}>{item.price || item.status}</Text>
                 </View>
 
                 <View style={styles.tagRow}>
                     <View style={styles.tag}>
                         <Users size={12} color={Colors.primary} />
-                        <Text style={styles.tagText}>{item.pax}</Text>
+                        <Text style={styles.tagText}>{item.pax || 'Tersedia'}</Text>
                     </View>
                 </View>
 
@@ -60,16 +77,20 @@ const RoomListScreen = ({ navigation }: any) => {
                 <View style={{ width: 40 }} />
             </View>
 
-            <FlatList
-                data={KTV_ROOMS}
-                renderItem={renderRoomItem}
-                keyExtractor={(item) => item.id}
-                contentContainerStyle={styles.listContent}
-                showsVerticalScrollIndicator={false}
-                ListHeaderComponent={() => (
-                    <Text style={styles.subHeader}>Pilih ruang pribadi Anda untuk pengalaman karaoke terbaik.</Text>
-                )}
-            />
+            {isLoading ? (
+                <ActivityIndicator color={Colors.primary} style={{ marginTop: 40 }} />
+            ) : (
+                <FlatList
+                    data={rooms}
+                    renderItem={renderRoomItem}
+                    keyExtractor={(item) => item.id}
+                    contentContainerStyle={styles.listContent}
+                    showsVerticalScrollIndicator={false}
+                    ListHeaderComponent={() => (
+                        <Text style={styles.subHeader}>Pilih ruang pribadi Anda untuk pengalaman karaoke terbaik.</Text>
+                    )}
+                />
+            )}
         </SafeAreaView>
     );
 };

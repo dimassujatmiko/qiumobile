@@ -2,13 +2,15 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Dimensions, StatusBar, Alert, Animated, ImageBackground } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ChevronRight, Utensils, Home as HomeIcon, Bell, Search, MapPin, Wallet, Crown, Ticket, Wine, Banknote, ShoppingCart } from 'lucide-react-native';
+import { ChevronRight, Utensils, Home as HomeIcon, Bell, Search, MapPin, Wallet, Crown, Ticket, Milk, Banknote, ShoppingCart } from 'lucide-react-native';
 import { Colors, Spacing } from '../theme/Theme';
 import { useAuth } from '../context/AuthContext';
 import LogoImage from '../../assets/icon.png';
 import HeaderBg from '../../assets/splash-icon.png';
 import { useCart } from '../context/CartContext';
-import { EVENTS, ROOMS, PROMO_COMBO } from '../utils/MockData';
+import { eventService } from '../services/eventService';
+import { promoService } from '../services/promoService';
+import { ActivityIndicator } from 'react-native';
 
 const { width } = Dimensions.get('window');
 
@@ -18,14 +20,37 @@ const HomeScreen = ({ navigation }: any) => {
     const [activeIndex, setActiveIndex] = useState(0);
     const scrollViewRef = useRef<ScrollView>(null);
     const scrollY = useRef(new Animated.Value(0)).current;
+    const [events, setEvents] = useState<any[]>([]);
+    const [promos, setPromos] = useState<any[]>([]);
+    const [isLoadingEvents, setIsLoadingEvents] = useState(true);
 
     const showAlert = (title: string) => {
         Alert.alert(title, "Fitur ini akan segera hadir.");
     };
 
     useEffect(() => {
+        const fetchInitialData = async () => {
+            try {
+                const [eventsData, promosData] = await Promise.all([
+                    eventService.getEvents(),
+                    promoService.getPromotions()
+                ]);
+                setEvents(eventsData);
+                setPromos(promosData);
+            } catch (error) {
+                console.error('Failed to fetch home data:', error);
+            } finally {
+                setIsLoadingEvents(false);
+            }
+        };
+        fetchInitialData();
+    }, []);
+
+    useEffect(() => {
+        if (events.length === 0) return;
+
         const interval = setInterval(() => {
-            const nextIndex = activeIndex === EVENTS.length - 1 ? 0 : activeIndex + 1;
+            const nextIndex = activeIndex === events.length - 1 ? 0 : activeIndex + 1;
             scrollViewRef.current?.scrollTo({
                 x: nextIndex * width,
                 animated: true,
@@ -34,7 +59,7 @@ const HomeScreen = ({ navigation }: any) => {
         }, 4000);
 
         return () => clearInterval(interval);
-    }, [activeIndex]);
+    }, [activeIndex, events]);
 
     const headerHeight = width * 1.1;
 
@@ -77,13 +102,13 @@ const HomeScreen = ({ navigation }: any) => {
                             )}
                             {isLoggedIn && (
                                 <LinearGradient
-                                    colors={Colors.goldLight as any}
+                                    colors={Colors.goldGradient as any}
                                     style={styles.membershipBadge}
                                     start={{ x: 0, y: 0 }}
                                     end={{ x: 1, y: 1 }}
                                 >
                                     <Crown size={12} color="#000" />
-                                    <Text style={[styles.membershipText, { color: '#000' }]}>ANGGOTA GOLD</Text>
+                                    <Text style={[styles.membershipText, { color: '#000' }]}>ANGGOTA {user?.level || 'GOLD'}</Text>
                                 </LinearGradient>
                             )}
                         </View>
@@ -137,7 +162,11 @@ const HomeScreen = ({ navigation }: any) => {
                             setActiveIndex(slideIndex);
                         }}
                     >
-                        {EVENTS.map((event) => (
+                        {isLoadingEvents ? (
+                            <View style={{ width, justifyContent: 'center', alignItems: 'center', backgroundColor: '#111' }}>
+                                <ActivityIndicator color={Colors.primary} />
+                            </View>
+                        ) : events.map((event) => (
                             <TouchableOpacity key={event.id} style={styles.eventCard} activeOpacity={1}>
                                 <Image
                                     source={{ uri: event.image }}
@@ -153,17 +182,19 @@ const HomeScreen = ({ navigation }: any) => {
                     </ScrollView>
 
                     {/* Pagination Bars */}
-                    <View style={styles.pagination}>
-                        {EVENTS.map((_, index) => (
-                            <View
-                                key={index}
-                                style={[
-                                    styles.paginationBar,
-                                    activeIndex === index ? styles.activeBar : styles.inactiveBar
-                                ]}
-                            />
-                        ))}
-                    </View>
+                    {!isLoadingEvents && (
+                        <View style={styles.pagination}>
+                            {events.map((_, index) => (
+                                <View
+                                    key={index}
+                                    style={[
+                                        styles.paginationBar,
+                                        activeIndex === index ? styles.activeBar : styles.inactiveBar
+                                    ]}
+                                />
+                            ))}
+                        </View>
+                    )}
                 </Animated.View>
 
                 {/* Member Info Card (Overlapping) */}
@@ -174,17 +205,17 @@ const HomeScreen = ({ navigation }: any) => {
                             <View style={styles.memberInfo}>
                                 <View style={styles.coinContainer}>
                                     <Text style={styles.coinLabel}>Level</Text>
-                                    <Text style={styles.coinValue}>Gold</Text>
+                                    <Text style={styles.coinValue}>{isLoggedIn ? user?.level || 'Gold' : '-'}</Text>
                                 </View>
                                 <View style={styles.divider} />
                                 <View style={styles.coinContainer}>
                                     <Text style={styles.coinLabel}>QiuPoints</Text>
-                                    <Text style={styles.coinValue}>2,450</Text>
+                                    <Text style={styles.coinValue}>{isLoggedIn ? user?.points?.toLocaleString() || '0' : '-'}</Text>
                                 </View>
                                 <View style={styles.divider} />
                                 <View style={styles.coinContainer}>
                                     <Text style={styles.coinLabel}>Voucher</Text>
-                                    <Text style={styles.coinValue}>3 Tersedia</Text>
+                                    <Text style={styles.coinValue}>{isLoggedIn ? 'Cek Voucher' : '-'}</Text>
                                 </View>
                             </View>
                             <TouchableOpacity style={styles.voucherButton} onPress={() => navigation.navigate('Voucher')}>
@@ -204,20 +235,14 @@ const HomeScreen = ({ navigation }: any) => {
                                 end={{ x: 1, y: 0 }}
                                 style={styles.upgradeBannerGradient}
                             >
-                                <ImageBackground
-                                    source={require('../../assets/gold_texture.png')}
-                                    style={styles.upgradeBannerTexture}
-                                    imageStyle={{ opacity: 0.1, resizeMode: 'cover' }}
-                                >
-                                    <View style={styles.upgradeBannerContent}>
-                                        <Text style={styles.upgradeText}>
-                                            {isLoggedIn ? 'Tingkatkan level membership Anda!' : 'Masuk untuk nikmati promo eksklusif!'}
-                                        </Text>
-                                        <View style={styles.joinButton}>
-                                            <Text style={styles.joinButtonText}>{isLoggedIn ? 'Upgrade' : 'Masuk'}</Text>
-                                        </View>
+                                <View style={styles.upgradeBannerContent}>
+                                    <Text style={styles.upgradeText}>
+                                        {isLoggedIn ? 'Tingkatkan level membership Anda!' : 'Masuk untuk nikmati promo eksklusif!'}
+                                    </Text>
+                                    <View style={styles.joinButton}>
+                                        <Text style={styles.joinButtonText}>{isLoggedIn ? 'Upgrade' : 'Masuk'}</Text>
                                     </View>
-                                </ImageBackground>
+                                </View>
                             </LinearGradient>
                         </TouchableOpacity>
                     </View>
@@ -242,7 +267,7 @@ const HomeScreen = ({ navigation }: any) => {
                         onPress={() => navigation.navigate('MyBottles')}
                     >
                         <View style={styles.actionIconCircle}>
-                            <Wine size={24} color="#C6A234" />
+                            <Milk size={24} color="#C6A234" />
                         </View>
                         <Text style={styles.actionText}>Botol Saya</Text>
                     </TouchableOpacity>
@@ -264,14 +289,14 @@ const HomeScreen = ({ navigation }: any) => {
                 </View>
 
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
-                    {PROMO_COMBO.map((promo: any) => (
+                    {promos.map((promo: any) => (
                         <TouchableOpacity
                             key={promo.id}
                             style={styles.smallEventCard}
                             onPress={() => navigation.navigate('Menu')}
                         >
                             <Image
-                                source={{ uri: promo.image }}
+                                source={{ uri: promo.image || 'https://images.unsplash.com/photo-1569529465841-dfecdab7503b?q=80&w=1000' }}
                                 style={styles.smallEventImage}
                             />
                             <LinearGradient
@@ -279,10 +304,10 @@ const HomeScreen = ({ navigation }: any) => {
                                 style={styles.smallEventGradient}
                             >
                                 <View style={styles.promoBadge}>
-                                    <Text style={styles.promoBadgeText}>{promo.discount}</Text>
+                                    <Text style={styles.promoBadgeText}>{promo.discount || 'PROMO'}</Text>
                                 </View>
                                 <Text style={styles.smallEventTitle} numberOfLines={1}>{promo.title}</Text>
-                                <Text style={styles.smallEventDate}>{promo.subtitle}</Text>
+                                <Text style={styles.smallEventDate}>{promo.description || promo.subtitle}</Text>
                             </LinearGradient>
                         </TouchableOpacity>
                     ))}
@@ -297,7 +322,7 @@ const HomeScreen = ({ navigation }: any) => {
                 </View>
 
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
-                    {EVENTS.map((event: any) => (
+                    {events.map((event: any) => (
                         <TouchableOpacity
                             key={event.id}
                             style={styles.largeEventCard}

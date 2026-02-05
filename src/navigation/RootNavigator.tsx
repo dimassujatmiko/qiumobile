@@ -22,20 +22,33 @@ import TransactionHistoryScreen from '../screens/TransactionHistoryScreen';
 import TransactionDetailScreen from '../screens/TransactionDetailScreen';
 import BookingDetailScreen from '../screens/BookingDetailScreen';
 
+import { useAuth } from '../context/AuthContext';
+import { View, ActivityIndicator } from 'react-native';
+import { Colors } from '../theme/Theme';
+
 const Stack = createNativeStackNavigator();
 
 const RootNavigator = () => {
+    const { isLoggedIn, isLoading } = useAuth();
+
+    if (isLoading) {
+        return (
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' }}>
+                <ActivityIndicator size="large" color={Colors.primary} />
+            </View>
+        );
+    }
+
     return (
         <Stack.Navigator
             screenOptions={{
                 headerShown: false,
-                animation: 'slide_from_right', // Slide animation for all screens
+                animation: 'slide_from_right',
             }}
-            initialRouteName="Main"
         >
+            <Stack.Screen name="Main" component={TabNavigator} />
             <Stack.Screen name="Login" component={LoginScreen} />
             <Stack.Screen name="Register" component={RegisterScreen} />
-            <Stack.Screen name="Main" component={TabNavigator} />
             <Stack.Screen name="Menu" component={MenuScreen} />
             <Stack.Screen name="MenuDetail" component={MenuDetailScreen} />
             <Stack.Screen name="EventDetail" component={EventDetailScreen} />

@@ -3,7 +3,8 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Mic, Users, Plus, Calendar as CalendarIcon } from 'lucide-react-native';
 import { Colors, Spacing } from '../theme/Theme';
-import { KTV_ROOMS, LOUNGE_TABLES, MY_BOOKINGS } from '../utils/MockData';
+import { bookingService } from '../services/bookingService';
+import { useAuth } from '../context/AuthContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ImageBackground } from 'react-native';
 import GoldButton from '../components/GoldButton';
@@ -12,6 +13,38 @@ import SilverButton from '../components/SilverButton';
 const { width } = Dimensions.get('window');
 
 const RSVPScreen = ({ navigation }: any) => {
+    const { user, isLoggedIn } = useAuth();
+    const [ktvRooms, setKtvRooms] = React.useState<any[]>([]);
+    const [loungeTables, setLoungeTables] = React.useState<any[]>([]);
+    const [myBookings, setMyBookings] = React.useState<any[]>([]);
+    const [isLoading, setIsLoading] = React.useState(true);
+
+    React.useEffect(() => {
+        const loadRSVPData = async () => {
+            try {
+                const [rooms, history] = await Promise.all([
+                    bookingService.getRooms(),
+                    isLoggedIn ? bookingService.getBookingHistory(user?.id || '') : Promise.resolve([])
+                ]);
+                setKtvRooms(rooms.filter((r: any) => r.type === 'KTV'));
+                setLoungeTables(rooms.filter((r: any) => r.type === 'TABLE' || r.type === 'LOUNGE'));
+                setMyBookings(history);
+            } catch (error) {
+                console.error('Failed to load RSVP data:', error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        loadRSVPData();
+    }, [isLoggedIn, user]);
+
+    if (isLoading) {
+        return (
+            <SafeAreaView style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+                <Text style={{ color: Colors.primary }}>Memuat data...</Text>
+            </SafeAreaView>
+        );
+    }
     return (
         <SafeAreaView style={styles.container}>
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
@@ -33,13 +66,13 @@ const RSVPScreen = ({ navigation }: any) => {
                 </View>
 
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
-                    {KTV_ROOMS.map((room) => (
+                    {ktvRooms.map((room) => (
                         <TouchableOpacity
                             key={room.id}
                             style={styles.roomCard}
                             onPress={() => navigation.navigate('BookingForm', { roomName: room.name })}
                         >
-                            <Image source={{ uri: room.image }} style={styles.roomImage} />
+                            <Image source={{ uri: room.image || 'https://images.unsplash.com/photo-1516280440614-37939bbacd81?q=80&w=1000' }} style={styles.roomImage} />
 
                             <LinearGradient
                                 colors={Colors.silverGradient as any}
@@ -47,23 +80,17 @@ const RSVPScreen = ({ navigation }: any) => {
                                 end={{ x: 1, y: 0 }}
                                 style={styles.bookNowBadgeOverlay}
                             >
-                                <ImageBackground
-                                    source={require('../../assets/gold_texture.png')}
-                                    style={styles.badgeTexture}
-                                    imageStyle={{ opacity: 0.1, tintColor: '#fff' }}
-                                >
-                                    <Text style={styles.bookNowText}>PESAN SEKARANG</Text>
-                                </ImageBackground>
+                                <Text style={styles.bookNowText}>PESAN SEKARANG</Text>
                             </LinearGradient>
 
                             <View style={styles.roomFooter}>
                                 <View>
                                     <Text style={styles.roomName}>{room.name}</Text>
                                     <View style={styles.tagSilver}>
-                                        <Text style={styles.tagTextSilver}>{room.pax}</Text>
+                                        <Text style={styles.tagTextSilver}>{room.pax || 'Tersedia'}</Text>
                                     </View>
                                 </View>
-                                <Text style={styles.roomPrice}>{room.price}</Text>
+                                <Text style={styles.roomPrice}>{room.price || room.status}</Text>
                             </View>
 
                             {/* Decorative Silver Footer */}
@@ -94,13 +121,13 @@ const RSVPScreen = ({ navigation }: any) => {
                 </View>
 
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
-                    {LOUNGE_TABLES.map((table) => (
+                    {loungeTables.map((table) => (
                         <TouchableOpacity
                             key={table.id}
                             style={styles.roomCard}
                             onPress={() => navigation.navigate('BookingForm', { roomName: table.name })}
                         >
-                            <Image source={{ uri: table.image }} style={styles.roomImage} />
+                            <Image source={{ uri: table.image || 'https://images.unsplash.com/photo-1574096079513-d8259312b785?q=80&w=1000' }} style={styles.roomImage} />
 
                             <LinearGradient
                                 colors={Colors.silverGradient as any}
@@ -108,23 +135,17 @@ const RSVPScreen = ({ navigation }: any) => {
                                 end={{ x: 1, y: 0 }}
                                 style={styles.bookNowBadgeOverlay}
                             >
-                                <ImageBackground
-                                    source={require('../../assets/gold_texture.png')}
-                                    style={styles.badgeTexture}
-                                    imageStyle={{ opacity: 0.1, tintColor: '#fff' }}
-                                >
-                                    <Text style={styles.bookNowText}>AMANKAN MEJA</Text>
-                                </ImageBackground>
+                                <Text style={styles.bookNowText}>AMANKAN MEJA</Text>
                             </LinearGradient>
 
                             <View style={styles.roomFooter}>
                                 <View>
                                     <Text style={styles.roomName}>{table.name}</Text>
                                     <View style={styles.tagSilver}>
-                                        <Text style={styles.tagTextSilver}>{table.pax}</Text>
+                                        <Text style={styles.tagTextSilver}>{table.pax || 'Tersedia'}</Text>
                                     </View>
                                 </View>
-                                <Text style={styles.roomPrice}>{table.price.split('Rp ')[1] ? 'Rp ' + table.price.split('Rp ')[1] : table.price}</Text>
+                                <Text style={styles.roomPrice}>{table.price || table.status}</Text>
                             </View>
 
                             {/* Decorative Silver Footer */}
@@ -158,7 +179,7 @@ const RSVPScreen = ({ navigation }: any) => {
                     </TouchableOpacity>
                 </View>
 
-                {MY_BOOKINGS.length === 0 ? (
+                {myBookings.length === 0 ? (
                     <View style={styles.visitsEmptyState}>
                         <CalendarIcon size={48} color="#2A2A2A" />
                         <Text style={styles.noBookingsHeadline}>Tidak ada jadwal pesanan.</Text>
@@ -236,11 +257,9 @@ const styles = StyleSheet.create({
         borderRadius: 6,
         overflow: 'hidden',
     },
-    badgeTexture: {
+    bookNowText: {
         paddingHorizontal: 10,
         paddingVertical: 5,
-    },
-    bookNowText: {
         color: '#000',
         fontSize: 10,
         fontWeight: '900',
